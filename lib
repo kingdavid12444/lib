@@ -1,8 +1,10 @@
--- Roblox Modern UI Library v2.0 with Enhanced Styling and Draggable Mini Windows
+-- Roblox Modern UI Library v3.0 with Multi-Tab & Enhanced Slider
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
+local player = Players.LocalPlayer
 local UILib = {}
 
 -- Create main ScreenGui
@@ -11,35 +13,23 @@ gui.Name = "ModernUILib"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Top Dock Bar
-local Dock = Instance.new("Frame")
-Dock.Name = "TopDock"
-Dock.Size = UDim2.new(1, 0, 0, 40)
-Dock.Position = UDim2.new(0, 0, 0, 0)
-Dock.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Dock.BorderSizePixel = 0
-Dock.Parent = gui
-
--- Rounded corners and shadow
-local dockCorner = Instance.new("UICorner", Dock)
-dockCorner.CornerRadius = UDim.new(0, 8)
-local dockStroke = Instance.new("UIStroke", Dock)
-dockStroke.Color = Color3.fromRGB(0, 0, 0)
-dockStroke.Transparency = 0.5
-
-do
-    local blur = Instance.new("UIGradient", Dock)
-    blur.Rotation = 90
-    blur.Color = ColorSequence.new(Color3.fromRGB(30,30,30), Color3.fromRGB(20,20,20))
+do -- Top Dock
+    local Dock = Instance.new("Frame", gui)
+    Dock.Name = "TopDock"
+    Dock.Size = UDim2.new(1, 0, 0, 40)
+    Dock.Position = UDim2.new(0, 0, 0, 0)
+    Dock.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Dock.BorderSizePixel = 0
+    local dockCorner = Instance.new("UICorner", Dock)
+    dockCorner.CornerRadius = UDim.new(0, 8)
+    local tabLayout = Instance.new("UIListLayout", Dock)
+    tabLayout.FillDirection = Enum.FillDirection.Horizontal
+    tabLayout.Padding = UDim.new(0, 8)
+    tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 end
 
-local tabLayout = Instance.new("UIListLayout", Dock)
-tabLayout.FillDirection = Enum.FillDirection.Horizontal
-tabLayout.Padding = UDim.new(0, 8)
-tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-
--- Utility: create styled buttons
+-- Utility: style Buttons
 local function styleButton(btn)
     btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -48,61 +38,45 @@ local function styleButton(btn)
     btn.BorderSizePixel = 0
     local corner = Instance.new("UICorner", btn)
     corner.CornerRadius = UDim.new(0, 6)
-    btn.BackgroundTransparency = 0
-    
     -- Hover effect
     btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60,60,60)}):Play()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(60,60,60)}):Play()
     end)
     btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45,45,45)}):Play()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(45,45,45)}):Play()
     end)
 end
 
--- Hide all tab windows
-local function hideAllTabs()
-    for _, child in pairs(gui:GetChildren()) do
-        if child:IsA("Frame") and child.Name:match("_Window$") then
-            child.Visible = false
-        end
-    end
-end
-
--- Create Tab and associated mini window
+-- Create a new Tab and floating Window
 function UILib:CreateTab(tabName)
+    local dock = gui:WaitForChild("TopDock")
     -- Tab Button
-    local btn = Instance.new("TextButton")
+    local btn = Instance.new("TextButton", dock)
     btn.Name = tabName .. "_Button"
     btn.Size = UDim2.new(0, 100, 1, -8)
-    btn.Position = UDim2.new(0, 8 + (#Dock:GetChildren()-2)*108, 0, 4)
     btn.Text = tabName
-    btn.Parent = Dock
     styleButton(btn)
 
-    -- Mini Window
-    local window = Instance.new("Frame")
+    -- Floating Window
+    local window = Instance.new("Frame", gui)
     window.Name = tabName .. "_Window"
     window.Size = UDim2.new(0, 280, 0, 360)
-    window.Position = UDim2.new(0, 16, 0, 50)
+    window.Position = UDim2.new(0, 16 + (#dock:GetChildren()-1)*20, 0, 50)
     window.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     window.BorderSizePixel = 0
     window.Visible = false
     window.Active = true
     window.Draggable = true
-    window.Parent = gui
-
     local winCorner = Instance.new("UICorner", window)
     winCorner.CornerRadius = UDim.new(0, 8)
     local winStroke = Instance.new("UIStroke", window)
     winStroke.Color = Color3.fromRGB(0, 0, 0)
     winStroke.Transparency = 0.5
 
-    -- Title Bar inside Window
+    -- Title Bar
     local titleBar = Instance.new("Frame", window)
-    titleBar.Name = "TitleBar"
     titleBar.Size = UDim2.new(1, 0, 0, 30)
     titleBar.BackgroundTransparency = 1
-
     local titleLabel = Instance.new("TextLabel", titleBar)
     titleLabel.Size = UDim2.new(1, -16, 1, 0)
     titleLabel.Position = UDim2.new(0, 8, 0, 0)
@@ -113,27 +87,26 @@ function UILib:CreateTab(tabName)
     titleLabel.TextColor3 = Color3.fromRGB(245,245,245)
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Content Layout
+    -- Content container
     local content = Instance.new("ScrollingFrame", window)
     content.Name = "Content"
     content.Size = UDim2.new(1, -16, 1, -46)
     content.Position = UDim2.new(0, 8, 0, 38)
-    content.CanvasSize = UDim2.new(0, 0, 0, 0)
-    content.ScrollBarThickness = 6
     content.BackgroundTransparency = 1
-
+    content.ScrollBarThickness = 6
+    content.CanvasSize = UDim2.new(0, 0, 0, 0)
     local layout = Instance.new("UIListLayout", content)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Padding = UDim.new(0, 8)
 
-    -- Show/hide logic
+    -- Toggle window visibility on button click
     btn.MouseButton1Click:Connect(function()
-        hideAllTabs()
-        window.Visible = true
+        window.Visible = not window.Visible
     end)
 
     -- API for adding elements
     local api = {}
+
     function api:AddButton(text, callback)
         local b = Instance.new("TextButton", content)
         b.Size = UDim2.new(1, 0, 0, 30)
@@ -141,6 +114,7 @@ function UILib:CreateTab(tabName)
         styleButton(b)
         b.MouseButton1Click:Connect(callback)
     end
+
     function api:AddLabel(text)
         local lbl = Instance.new("TextLabel", content)
         lbl.Size = UDim2.new(1, 0, 0, 24)
@@ -150,11 +124,11 @@ function UILib:CreateTab(tabName)
         lbl.TextSize = 14
         lbl.TextColor3 = Color3.fromRGB(225,225,225)
     end
+
     function api:AddToggle(text, callback)
         local frame = Instance.new("Frame", content)
         frame.Size = UDim2.new(1, 0, 0, 30)
         frame.BackgroundTransparency = 1
-        
         local lbl = Instance.new("TextLabel", frame)
         lbl.Size = UDim2.new(0.7, 0, 1, 0)
         lbl.BackgroundTransparency = 1
@@ -162,7 +136,6 @@ function UILib:CreateTab(tabName)
         lbl.Font = Enum.Font.Gotham
         lbl.TextSize = 14
         lbl.TextColor3 = Color3.fromRGB(225,225,225)
-
         local btnToggle = Instance.new("TextButton", frame)
         btnToggle.Size = UDim2.new(0, 40, 0, 24)
         btnToggle.Position = UDim2.new(1, -44, 0, 3)
@@ -175,11 +148,12 @@ function UILib:CreateTab(tabName)
             callback(state)
         end)
     end
+
     function api:AddSlider(text, min, max, callback)
         local frame = Instance.new("Frame", content)
-        frame.Size = UDim2.new(1, 0, 0, 50)
+        frame.Size = UDim2.new(1, 0, 0, 60)
         frame.BackgroundTransparency = 1
-
+        -- Label
         local lbl = Instance.new("TextLabel", frame)
         lbl.Size = UDim2.new(1, 0, 0, 20)
         lbl.BackgroundTransparency = 1
@@ -187,36 +161,50 @@ function UILib:CreateTab(tabName)
         lbl.Font = Enum.Font.Gotham
         lbl.TextSize = 14
         lbl.TextColor3 = Color3.fromRGB(225,225,225)
-
-        -- Slider bar
-        local bar = Instance.new("Frame", frame)
-        bar.Size = UDim2.new(1, -20, 0, 6)
-        bar.Position = UDim2.new(0, 10, 1, -16)
-        bar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        bar.BorderSizePixel = 0
-        local barCorner = Instance.new("UICorner", bar)
-        barCorner.CornerRadius = UDim.new(0, 3)
-
-        local fill = Instance.new("Frame", bar)
+        -- Track
+        local track = Instance.new("Frame", frame)
+        track.Size = UDim2.new(1, -20, 0, 6)
+        track.Position = UDim2.new(0, 10, 0, 30)
+        track.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        track.BorderSizePixel = 0
+        local trackCorner = Instance.new("UICorner", track)
+        trackCorner.CornerRadius = UDim.new(0, 3)
+        -- Fill
+        local fill = Instance.new("Frame", track)
         fill.Size = UDim2.new(0, 0, 1, 0)
         fill.BackgroundColor3 = Color3.fromRGB(142, 68, 173)
         local fillCorner = Instance.new("UICorner", fill)
         fillCorner.CornerRadius = UDim.new(0, 3)
-
+        -- Knob
+        local knob = Instance.new("Frame", track)
+        knob.Size = UDim2.new(0, 14, 0, 14)
+        knob.AnchorPoint = Vector2.new(0.5, 0.5)
+        knob.Position = UDim2.new(0, 0, 0.5, 0)
+        knob.BackgroundColor3 = Color3.fromRGB(245,245,245)
+        local knobCorner = Instance.new("UICorner", knob)
+        knobCorner.CornerRadius = UDim.new(1, 0)
+        local knobStroke = Instance.new("UIStroke", knob)
+        knobStroke.Color = Color3.fromRGB(120,120,120)
+        -- Drag logic
         local dragging = false
-        bar.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+        track.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+            end
         end)
-        bar.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+            end
         end)
-        game:GetService("RunService").RenderStepped:Connect(function()
+        RunService.RenderStepped:Connect(function()
             if dragging then
-                local mouseX = game:GetService("UserInputService"):GetMouseLocation().X
-                local absPos = bar.AbsolutePosition.X
-                local absSize = bar.AbsoluteSize.X
-                local percent = math.clamp((mouseX - absPos) / absSize, 0, 1)
+                local mouseX = UserInputService:GetMouseLocation().X
+                local posX = track.AbsolutePosition.X
+                local sizeX = track.AbsoluteSize.X
+                local percent = math.clamp((mouseX - posX) / sizeX, 0, 1)
                 fill.Size = UDim2.new(percent, 0, 1, 0)
+                knob.Position = UDim2.new(percent, 0, 0.5, 0)
                 local value = math.floor((min + (max - min) * percent) + 0.5)
                 lbl.Text = text .. ": " .. value
                 callback(value)
